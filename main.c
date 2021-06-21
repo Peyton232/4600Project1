@@ -1,11 +1,11 @@
-#include <stdio.h>			 // FILE, NULL, fflush, fopen, fclose, printf, etc
-#include <stdlib.h> 		 // rand(), srand()
-#include <time.h>    		 // time()
-#include <sys/types.h>		 // pid_t, size_t
-#include <sys/wait.h>		 // wait
-#include <unistd.h>			 // getpid, fork, sleep
-#include <semaphore.h>		 // sem_t, SEM_FAILED
-#include <fcntl.h>			 // O_CREAT, O_RDONLY, O_WRONLY
+#include <stdio.h>               // FILE, NULL, fflush, fopen, fclose, printf, etc
+#include <stdlib.h>              // rand(), srand()
+#include <time.h>                // time()
+#include <sys/types.h>           // pid_t, size_t
+#include <sys/wait.h>            // wait
+#include <unistd.h>              // getpid, fork, sleep
+#include <semaphore.h>           // sem_t, SEM_FAILED
+#include <fcntl.h>               // O_CREAT, O_RDONLY, O_WRONLY
 
 //how to run
 // gcc -pthread main.c
@@ -63,7 +63,7 @@ int main()
 	sem_t *sem_id = sem_open(semName, O_CREAT, 0644, 1);
 	if (sem_id == SEM_FAILED)
 	{
-        perror("Parent  : [sem_open] Failed\n");
+                perror("Parent  : [sem_open] Failed\n");
 		exit(EXIT_FAILURE);
 	}
 	if (sem_unlink(semName) < 0)
