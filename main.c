@@ -6,6 +6,7 @@
 #include <unistd.h>              // getpid, fork, sleep
 #include <semaphore.h>           // sem_t, SEM_FAILED
 #include <fcntl.h>               // O_CREAT, O_RDONLY, O_WRONLY
+#include <sys/mman.h>            // mman
 
 //how to run
 // gcc -pthread main.c
@@ -28,38 +29,59 @@ const char *semName = "/semLock";
 // rogue semaphores are here - /dev/shm
 // if weird error with semaphore check if it is still left open here
 
+//structs
+struct processes{
+	unsigned long long int cycleTime;
+	int memory;
+};
 
 //protoypes
-void scheduler(sem_t *sem_id, int n);
+int scheduler(sem_t *sem_id, int numProcesses, struct processes prosArr[]);
+void sortProcesses(struct processes prosArr[]);
 
 int main()
 {	
+	//stack variables
 	char buffer[1024];
 	FILE *fp; 
 	int parentPid = getpid();
 	unsigned long long int tempCycle; 
 	int tempMem;
 	
-	/* Intializes random number generator */
+	//SHARED MEMORY
+	// time each processor spent running
+	int *totalTime = mmap(NULL, sizeof *totalTime, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	*totalTime = 0;
+	// array of processes, we will remove elements from the array as each process takes on a process
+	struct processes* prosArr = mmap(NULL, NUM_OF_PROCESSES * sizeof(prosArr), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	
+	// Intializes random number generator
 	time_t t;
 	srand((unsigned) time(&t));
 	
 	//open file to store generated processes
 	fp = fopen("randomProcesses.txt", "w+");
 	
-	//generate random processes to read from file
+	//generate random processes to write to file and store in array
 	for (int i = 0; i < NUM_OF_PROCESSES; i++)
 	{
 		// get random time and memory for this process
 		tempCycle = rand() % (UPPER_CYCLE - LOWER_CYCLE) + LOWER_CYCLE;
 		tempMem = rand() % (UPPER_MEMORY - LOWER_MEMORY) + LOWER_MEMORY;
 		fprintf(fp, "p%d %llu %d\n", i, tempCycle, tempMem);
+		
+		// sort this later
+		prosArr[i].cycleTime = tempCycle;
+		prosArr[i].memory = tempMem;
 	}
 	
 	//close file
 	fclose(fp);
 	
-	//create semaphore
+	// TODO sort arr of structs
+	sortProcesses(prosArr);
+	
+	//create semaphore to be used for critical sections
 	sem_t *sem_id = sem_open(semName, O_CREAT, 0644, 1);
 	if (sem_id == SEM_FAILED)
 	{
@@ -72,7 +94,6 @@ int main()
 		exit(EXIT_FAILURE);
 	}
 	
-	
 	//create 5 children to go and begin execution
 	pid_t child_pid, wpid;
 	int status = 0;
@@ -80,7 +101,7 @@ int main()
 	for (int i = 0; i < 5; i++) {
 		if (fork() == 0) {
 		   //call scheduling child function here
-		   scheduler(sem_id, NUM_OF_PROCESSES);
+		   *totalTime += scheduler(sem_id, NUM_OF_PROCESSES, prosArr);
 		   exit(0);
 		}
 		// control reaches this point only in the parent
@@ -88,40 +109,45 @@ int main()
 	
 	// the parent waits for all the child processes to finish
 	while ((wpid = wait(&status)) > 0); 
+	
+	//get total time it took to run
+	printf("time to run through all processes: %d\n", *totalTime);
 
     return 0;
 }
-
 
 /*
  * functional loop where the 5 children processes will go into and begin to 
  * read the processes in randomProcesses.txt and then schdule which processor
  * will run which process
- *
- *
  */
-void scheduler(sem_t *sem_id, int n){
+int scheduler(sem_t *sem_id, int numProcesses, struct processes prosArr[]){
 	
-	int numProcesses = n;
+	int timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
 	
 	while (numProcesses > 0){
-		numProcesses = 0;
-	}
+		// if semaphore available, then continue
+		if (sem_wait(sem_id) < 0)
+			printf("%d  : [sem_wait] Failed\n", getpid());
 	
+	
+	
+	
+		//release control of semaphore
+		if (sem_post(sem_id) < 0)
+			printf("%d   : [sem_post] Failed \n", getpid());
+		
+		//delete me later (replace which a query of how many elements are left in the arr)
+		numProcesses = 0;
+	}	
+	
+	return 2;
 }
 
-
-// how to open and close file 
-	/*
-	//open file
-	int fd;
-	fd = open ("file.txt", O_WRONLY);
-	if (fd == -1)
-	{
-		perror("file access");
-		exit(EXIT_FAILURE);
-	}
-	//close file
-	close(fd);
-	*/
-
+/*
+ * take in the arr of processes 
+ * and sort based on time needed to run
+ */
+void sortProcesses(struct processes prosArr[]){
+	// TODO sort arr of structs
+}
