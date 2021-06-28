@@ -1,15 +1,15 @@
-#include <stdio.h>               // FILE, NULL, fflush, fopen, fclose, printf, etc
-#include <stdlib.h>              // rand(), srand()
-#include <time.h>                // time()
-#include <sys/types.h>           // pid_t, size_t
-#include <sys/wait.h>            // wait
-#include <unistd.h>              // getpid, fork, sleep
-#include <semaphore.h>           // sem_t, SEM_FAILED
-#include <fcntl.h>               // O_CREAT, O_RDONLY, O_WRONLY
-#include <sys/mman.h>            // mman
+#include <stdio.h>			 // FILE, NULL, fflush, fopen, fclose, printf, etc
+#include <stdlib.h> 		 // rand(), srand()
+#include <time.h>    		 // time()
+#include <sys/types.h>		 // pid_t, size_t
+#include <sys/wait.h>		 // wait
+#include <unistd.h>			 // getpid, fork, sleep
+#include <semaphore.h>		 // sem_t, SEM_FAILED
+#include <fcntl.h>			 // O_CREAT, O_RDONLY, O_WRONLY
+#include <sys/mman.h>        // mman
 
 //how to run
-// gcc -pthread main.c
+// gcc -pthread question1.c
 
 // total number of processes to generate and schedule 
 #define NUM_OF_PROCESSES 200
@@ -21,8 +21,11 @@
 
 // upper and lower limits for ammount of memory a process can take
 // expressed in MB * 100 to avoid fractional numbers
-#define UPPER_MEMORY 25
-#define LOWER_MEMORY 800000
+#define UPPER_MEMORY 800000
+#define LOWER_MEMORY 25
+
+//clock speed 
+#define GHZ 8
 
 // will be used to lock down file I/O between processes to keep it atomic
 const char *semName = "/semLock";
@@ -31,6 +34,7 @@ const char *semName = "/semLock";
 
 //structs
 struct processes{
+	char name[12];
 	unsigned long long int cycleTime;
 	int memory;
 };
@@ -43,7 +47,7 @@ int main()
 {	
 	//stack variables
 	char buffer[1024];
-	FILE *fp; 
+	FILE *fp;
 	int parentPid = getpid();
 	unsigned long long int tempCycle; 
 	int tempMem;
@@ -68,11 +72,12 @@ int main()
 		// get random time and memory for this process
 		tempCycle = rand() % (UPPER_CYCLE - LOWER_CYCLE) + LOWER_CYCLE;
 		tempMem = rand() % (UPPER_MEMORY - LOWER_MEMORY) + LOWER_MEMORY;
-		fprintf(fp, "p%d %llu %d\n", i, tempCycle, tempMem);
+		fprintf(fp, "p%d\t burst time: %llu\t\t memory requirement: %d\n", i, tempCycle, tempMem);
 		
 		// sort this later
 		prosArr[i].cycleTime = tempCycle;
 		prosArr[i].memory = tempMem;
+		snprintf(prosArr[i].name, 12, "p%d", i);
 	}
 	
 	//close file
@@ -81,11 +86,14 @@ int main()
 	// TODO sort arr of structs
 	sortProcesses(prosArr);
 	
+	//test print
+	printPros(prosArr);
+	
 	//create semaphore to be used for critical sections
 	sem_t *sem_id = sem_open(semName, O_CREAT, 0644, 1);
 	if (sem_id == SEM_FAILED)
 	{
-                perror("Parent  : [sem_open] Failed\n");
+        perror("Parent  : [sem_open] Failed\n");
 		exit(EXIT_FAILURE);
 	}
 	if (sem_unlink(semName) < 0)
@@ -107,11 +115,12 @@ int main()
 		// control reaches this point only in the parent
 	}
 	
+	
 	// the parent waits for all the child processes to finish
 	while ((wpid = wait(&status)) > 0); 
 	
 	//get total time it took to run
-	printf("time to run through all processes: %d\n", *totalTime);
+	printf("time to run through all processes: %d\n", *totalTime * 1000);
 
     return 0;
 }
@@ -130,7 +139,11 @@ int scheduler(sem_t *sem_id, int numProcesses, struct processes prosArr[]){
 		if (sem_wait(sem_id) < 0)
 			printf("%d  : [sem_wait] Failed\n", getpid());
 	
-	
+		// THIS IS CRITICAL SECTION
+		// get next item in posArr
+		// remove it
+		// calulate timeToRun
+		
 	
 	
 		//release control of semaphore
@@ -139,9 +152,11 @@ int scheduler(sem_t *sem_id, int numProcesses, struct processes prosArr[]){
 		
 		//delete me later (replace which a query of how many elements are left in the arr)
 		numProcesses = 0;
+		
+		//sleep for last timeToRun /1000
 	}	
 	
-	return 2;
+	return timeToRun;
 }
 
 /*
@@ -149,5 +164,31 @@ int scheduler(sem_t *sem_id, int numProcesses, struct processes prosArr[]){
  * and sort based on time needed to run
  */
 void sortProcesses(struct processes prosArr[]){
-	// TODO sort arr of structs
+	int i, j;
+	int n = NUM_OF_PROCESSES;
+	struct processes key;
+    for (i = 1; i < n; i++)
+    { 
+        key = prosArr[i]; 
+        j = i - 1; 
+
+        /* Move elements of arr[0..i-1], that are 
+        greater than key, to one position ahead 
+        of their current position */
+        while (j >= 0 && prosArr[j].cycleTime > key.cycleTime)
+        { 
+            prosArr[j + 1].cycleTime = prosArr[j].cycleTime; 
+            j = j - 1; 
+        } 
+        prosArr[j + 1] = key; 
+    } 
 }
+
+void printPros(struct processes prosArr[]){
+	int n = NUM_OF_PROCESSES;
+	for (int i = 1; i < n; i++)
+    { 
+		printf("%s  time: %llu   mem: %d\n", prosArr[i].name, prosArr[i].cycleTime, prosArr[i].memory);
+	}
+}
+
