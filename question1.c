@@ -7,9 +7,10 @@
 #include <semaphore.h>		 // sem_t, SEM_FAILED
 #include <fcntl.h>			 // O_CREAT, O_RDONLY, O_WRONLY
 #include <sys/mman.h>        // mman
+#include<string.h>           // memove
 
 //how to run
-// gcc -pthread question1.c
+// gcc -pthread main.c
 
 // total number of processes to generate and schedule 
 #define NUM_OF_PROCESSES 200
@@ -25,7 +26,7 @@
 #define LOWER_MEMORY 25
 
 //clock speed 
-#define GHZ 8
+#define GHZ 8000000000
 
 // will be used to lock down file I/O between processes to keep it atomic
 const char *semName = "/semLock";
@@ -40,8 +41,9 @@ struct processes{
 };
 
 //protoypes
-int scheduler(sem_t *sem_id, int numProcesses, struct processes prosArr[]);
+double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[]);
 void sortProcesses(struct processes prosArr[]);
+void printPros(struct processes prosArr[]);
 
 int main()
 {	
@@ -54,8 +56,11 @@ int main()
 	
 	//SHARED MEMORY
 	// time each processor spent running
-	int *totalTime = mmap(NULL, sizeof *totalTime, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	double *totalTime = mmap(NULL, sizeof *totalTime, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	*totalTime = 0;
+	int *numProcesses = mmap(NULL, sizeof *numProcesses, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	*numProcesses = NUM_OF_PROCESSES;
+	
 	// array of processes, we will remove elements from the array as each process takes on a process
 	struct processes* prosArr = mmap(NULL, NUM_OF_PROCESSES * sizeof(prosArr), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	
@@ -83,11 +88,11 @@ int main()
 	//close file
 	fclose(fp);
 	
-	// TODO sort arr of structs
-	sortProcesses(prosArr);
+	// sort arr of structs
+	//sortProcesses(prosArr);
 	
 	//test print
-	printPros(prosArr);
+	//printPros(prosArr);
 	
 	//create semaphore to be used for critical sections
 	sem_t *sem_id = sem_open(semName, O_CREAT, 0644, 1);
@@ -109,18 +114,17 @@ int main()
 	for (int i = 0; i < 5; i++) {
 		if (fork() == 0) {
 		   //call scheduling child function here
-		   *totalTime += scheduler(sem_id, NUM_OF_PROCESSES, prosArr);
+		   *totalTime += scheduler(sem_id, numProcesses, prosArr);
 		   exit(0);
 		}
 		// control reaches this point only in the parent
 	}
 	
-	
 	// the parent waits for all the child processes to finish
 	while ((wpid = wait(&status)) > 0); 
 	
 	//get total time it took to run
-	printf("time to run through all processes: %d\n", *totalTime * 1000);
+	printf("time to run through all processes: %f\n", *totalTime);
 
     return 0;
 }
@@ -130,30 +134,39 @@ int main()
  * read the processes in randomProcesses.txt and then schdule which processor
  * will run which process
  */
-int scheduler(sem_t *sem_id, int numProcesses, struct processes prosArr[]){
+double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[]){
+	double timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
+	double execTime = 0, wait = 0;
 	
-	int timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
-	
-	while (numProcesses > 0){
+	while (*numProcesses > 0){
 		// if semaphore available, then continue
 		if (sem_wait(sem_id) < 0)
 			printf("%d  : [sem_wait] Failed\n", getpid());
-	
 		// THIS IS CRITICAL SECTION
-		// get next item in posArr
-		// remove it
-		// calulate timeToRun
 		
-	
+		if (*numProcesses <= 0){
+			if (sem_post(sem_id) < 0)
+				printf("%d   : [sem_post] Failed \n", getpid());
+			return timeToRun;
+		}
+		
+		// get next item in posArr
+		printf("%s  time: %llu   mem: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory);
+		memmove(&prosArr[0], &prosArr[1], (NUM_OF_PROCESSES - 1) * sizeof(struct processes));
+		*numProcesses = *numProcesses - 1;
+		
+		// calulate timeToRun
+		execTime = (double)prosArr[0].cycleTime / GHZ;
+		wait = timeToRun;
+		timeToRun += execTime + wait;
 	
 		//release control of semaphore
 		if (sem_post(sem_id) < 0)
 			printf("%d   : [sem_post] Failed \n", getpid());
 		
-		//delete me later (replace which a query of how many elements are left in the arr)
-		numProcesses = 0;
-		
 		//sleep for last timeToRun /1000
+		usleep(execTime);
+		
 	}	
 	
 	return timeToRun;
@@ -184,6 +197,9 @@ void sortProcesses(struct processes prosArr[]){
     } 
 }
 
+/*
+ * test print for the array of processes
+ */
 void printPros(struct processes prosArr[]){
 	int n = NUM_OF_PROCESSES;
 	for (int i = 1; i < n; i++)
