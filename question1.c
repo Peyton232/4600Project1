@@ -35,7 +35,7 @@ const char *semName = "/semLock";
 
 //structs
 struct processes{
-	char name[12];
+	char name[5];
 	unsigned long long int cycleTime;
 	int memory;
 };
@@ -44,6 +44,7 @@ struct processes{
 double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[]);
 void sortProcesses(struct processes prosArr[]);
 void printPros(struct processes prosArr[]);
+void convertSectoDay(unsigned long long int totalTime);
 
 int main()
 {	
@@ -125,6 +126,9 @@ int main()
 	
 	//get total time it took to run
 	printf("time to run through all processes: %f\n", *totalTime);
+	
+	//put in recognizable terms 
+	convertSectoDay((unsigned long long int)*totalTime);
 
     return 0;
 }
@@ -206,5 +210,28 @@ void printPros(struct processes prosArr[]){
     { 
 		printf("%s  time: %llu   mem: %d\n", prosArr[i].name, prosArr[i].cycleTime, prosArr[i].memory);
 	}
+}
+
+/*
+ * converts seconds to
+ * day, hour, minute, second
+ */
+void convertSectoDay(unsigned long long int n)
+{
+    unsigned int day = n / (24 * 3600);
+ 
+    n = n % (24 * 3600);
+    unsigned int hour = n / 3600;
+ 
+    n %= 3600;
+    unsigned int minutes = n / 60 ;
+ 
+    n %= 60;
+    unsigned int seconds = n;
+     
+	printf("days: %d\n", day);
+	printf("hour: %d\n", hour);
+	printf("minutes: %d\n", minutes);
+	printf("seconds: %d\n", seconds);
 }
 
