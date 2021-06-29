@@ -151,7 +151,7 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[]){
 		if (*numProcesses <= 0){
 			if (sem_post(sem_id) < 0)
 				printf("%d   : [sem_post] Failed \n", getpid());
-			return timeToRun;
+			return timeToRun + wait;
 		}
 		
 		// get next item in posArr
@@ -161,8 +161,8 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[]){
 		
 		// calulate timeToRun
 		execTime = (double)prosArr[0].cycleTime / GHZ;
-		wait = timeToRun;
-		timeToRun += execTime + wait;
+		wait += timeToRun;
+		timeToRun += execTime;
 	
 		//release control of semaphore
 		if (sem_post(sem_id) < 0)
@@ -173,7 +173,7 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[]){
 		
 	}	
 	
-	return timeToRun;
+	return timeToRun + wait;
 }
 
 /*
@@ -218,6 +218,9 @@ void printPros(struct processes prosArr[]){
  */
 void convertSectoDay(unsigned long long int n)
 {
+	unsigned int month = n / (24 * 3600 * 31);
+	
+	n = n % (24 * 3600 * 31);
     unsigned int day = n / (24 * 3600);
  
     n = n % (24 * 3600);
@@ -228,7 +231,8 @@ void convertSectoDay(unsigned long long int n)
  
     n %= 60;
     unsigned int seconds = n;
-     
+    
+	printf("months %d\n", month);
 	printf("days: %d\n", day);
 	printf("hour: %d\n", hour);
 	printf("minutes: %d\n", minutes);
