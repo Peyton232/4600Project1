@@ -8,6 +8,7 @@
 #include <fcntl.h>			 // O_CREAT, O_RDONLY, O_WRONLY
 #include <sys/mman.h>        // mman
 #include<string.h>           // memove
+#include <sys/shm.h>         // shmdt
 
 //how to run
 // gcc -pthread main.c
@@ -93,7 +94,7 @@ int main()
 	sortProcesses(prosArr);
 	
 	//test print
-	//printPros(prosArr);
+	printPros(prosArr);
 	
 	//create semaphore to be used for critical sections
 	sem_t *sem_id = sem_open(semName, O_CREAT, 0644, 1);
@@ -116,6 +117,7 @@ int main()
 		if (fork() == 0) {
 		   //call scheduling child function here
 		   *totalTime += scheduler(sem_id, numProcesses, prosArr);
+		   printf("peace\n");
 		   exit(0);
 		}
 		// control reaches this point only in the parent
@@ -129,6 +131,10 @@ int main()
 	
 	//put in recognizable terms 
 	convertSectoDay((unsigned long long int)*totalTime);
+	
+	//free memory
+	shmdt(numProcesses);
+	shmdt(totalTime);
 
     return 0;
 }
@@ -155,7 +161,7 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[]){
 		}
 		
 		// get next item in posArr
-		printf("%s  time: %llu   mem: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory);
+		printf("%s  time: %llu   mem: %d   pid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
 		memmove(&prosArr[0], &prosArr[1], (NUM_OF_PROCESSES - 1) * sizeof(struct processes));
 		*numProcesses = *numProcesses - 1;
 		
@@ -194,7 +200,7 @@ void sortProcesses(struct processes prosArr[]){
         of their current position */
         while (j >= 0 && prosArr[j].cycleTime > key.cycleTime)
         { 
-            prosArr[j + 1].cycleTime = prosArr[j].cycleTime; 
+            prosArr[j + 1] = prosArr[j];
             j = j - 1; 
         } 
         prosArr[j + 1] = key; 
