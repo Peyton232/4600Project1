@@ -90,7 +90,7 @@ int main()
 	fclose(fp);
 	
 	// sort arr of structs
-	//sortProcesses(prosArr);
+	sortProcesses(prosArr);
 	
 	//test print
 	//printPros(prosArr);
@@ -169,7 +169,7 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[]){
 			printf("%d   : [sem_post] Failed \n", getpid());
 		
 		//sleep for last timeToRun /1000
-		usleep(execTime);
+		usleep(execTime * 1000);
 		
 	}	
 	
