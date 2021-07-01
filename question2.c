@@ -57,7 +57,6 @@ int main()
 	int parentPid = getpid();
 	unsigned long long int tempCycle; 
 	int tempMem;
-	
 	//SHARED MEMORY
 	// time each processor spent running
 	double *totalTime = mmap(NULL, sizeof *totalTime, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
@@ -65,7 +64,7 @@ int main()
 	int *numProcesses = mmap(NULL, sizeof *numProcesses, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	*numProcesses = NUM_OF_PROCESSES;
 	
-	// array of processes, we will remove elements from the array as each process takes on a process
+	// array of processes, we will remove elements from the array as each processor takes on a process
 	struct processes* prosArr = mmap(NULL, NUM_OF_PROCESSES * sizeof(prosArr), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	struct processes* prosArr2mem = mmap(NULL, NUM_OF_PROCESSES * sizeof(prosArr2mem), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	struct processes* prosArr4mem = mmap(NULL, NUM_OF_PROCESSES * sizeof(prosArr4mem), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
@@ -97,7 +96,6 @@ int main()
 	
 	// sort arr of structs
 	sortProcesses(prosArr, prosArr2mem, prosArr4mem, prosArr8mem);
-	
 	//test print
 	printPros(prosArr);
 	
@@ -163,8 +161,7 @@ double scheduler2mem(sem_t *sem_id, int *numProcesses, struct processes prosArr2
 	double timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
 	double execTime = 0, wait = 0;
 	
-	while(prosArr2mem[0].name){
-		while (*numProcesses > 0){
+	while(prosArr2mem[0].name != 0){
 			// if semaphore available, then continue
 			if (sem_wait(sem_id) < 0)
 				printf("%d  : [sem_wait] Failed\n", getpid());
@@ -192,7 +189,6 @@ double scheduler2mem(sem_t *sem_id, int *numProcesses, struct processes prosArr2
 		
 			//sleep for last timeToRun /1000
 			usleep(execTime * 1000);
-		}
 
 	}	
 	
@@ -203,8 +199,7 @@ double scheduler4mem(sem_t *sem_id, int *numProcesses, struct processes prosArr4
 	double timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
 	double execTime = 0, wait = 0;
 	
-	while(prosArr4mem[0].name){
-		while (*numProcesses > 0){
+	while(prosArr4mem[0].name != 0){
 			// if semaphore available, then continue
 			if (sem_wait(sem_id) < 0)
 				printf("%d  : [sem_wait] Failed\n", getpid());
@@ -232,7 +227,6 @@ double scheduler4mem(sem_t *sem_id, int *numProcesses, struct processes prosArr4
 		
 			//sleep for last timeToRun /1000
 			usleep(execTime * 1000);
-		}
 
 	}	
 	
@@ -243,8 +237,7 @@ double scheduler8mem(sem_t *sem_id, int *numProcesses, struct processes prosArr8
 	double timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
 	double execTime = 0, wait = 0;
 	
-	while(prosArr8mem[0].name){
-		while (*numProcesses > 0){
+	while(prosArr8mem[0].name != 0){
 			// if semaphore available, then continue
 			if (sem_wait(sem_id) < 0)
 				printf("%d  : [sem_wait] Failed\n", getpid());
@@ -272,8 +265,6 @@ double scheduler8mem(sem_t *sem_id, int *numProcesses, struct processes prosArr8
 		
 			//sleep for last timeToRun /1000
 			usleep(execTime * 1000);
-		}
-
 	}	
 	
 	return timeToRun + wait;
@@ -283,11 +274,12 @@ double scheduler8mem(sem_t *sem_id, int *numProcesses, struct processes prosArr8
  * take in the arr of processes 
  * and sort based on time needed to run
  */
-void sortProcesses(struct processes prosArr[], struct processes prosArr2mem[], struct processes prosArr4mem[], struct processes prosArr8mem[]){
+void sortProcesses(struct processes prosArr[], struct processes prosArr2mem[], struct processes prosArr4mem[], struct processes prosArr8mem[])
+{
 	int i, j;
 	int n = NUM_OF_PROCESSES;
 	struct processes key;
-	
+	const char* nullPtr = '\0';
 	for (i = 1; i < n; i++)
     { 
         key = prosArr[i]; 
@@ -303,38 +295,49 @@ void sortProcesses(struct processes prosArr[], struct processes prosArr2mem[], s
         } 
         prosArr[j + 1] = key; 
     } 
-
+printf("debug 1\n");
 	//distribute processes to memory limited arrays based on memory size of process
 	for (i = 0; i < n; i++)
     { 
-        if(prosArr[i].memory < 200000){
+printf("memory: %d\n", prosArr[i].memory);	
+
+        if(prosArr[i].memory < 200000)
+		{
 			j = 0;
-			while(prosArr2mem[j].name){
+			while(prosArr2mem[j].name)
+			{
 				j++;
 			}
 			prosArr2mem[j] = prosArr[i];
 		}  
-        if(prosArr[i].memory >= 200000 && prosArr[i].memory < 400000){
+        if(prosArr[i].memory >= 200000 && prosArr[i].memory < 400000)
+		{
 			j = 0;
-			while(prosArr4mem[j].name){
+			while(prosArr4mem[j].name)
+			{
 				j++;
 			}
 			prosArr4mem[j] = prosArr[i];
 		}  
-        if(prosArr[i].memory >= 400000){
+        if(prosArr[i].memory >= 400000)
+		{
 			j = 0;
-			while(prosArr8mem[j].name){
+			while(prosArr8mem[j].name)
+			{
 				j++;
 			}
 			prosArr8mem[j] = prosArr[i];
 		}  
+printf("debug 2\n");	
+
 	}
 }
 
 /*
  * test print for the array of processes
  */
-void printPros(struct processes prosArr[]){
+void printPros(struct processes prosArr[])
+{
 	int n = NUM_OF_PROCESSES;
 	for (int i = 1; i < n; i++)
     { 
@@ -348,9 +351,7 @@ void printPros(struct processes prosArr[]){
  */
 void convertSectoDay(unsigned long long int n)
 {
-	unsigned int month = n / (24 * 3600 * 31);
 	
-	n = n % (24 * 3600 * 31);
     unsigned int day = n / (24 * 3600);
  
     n = n % (24 * 3600);
@@ -362,9 +363,8 @@ void convertSectoDay(unsigned long long int n)
     n %= 60;
     unsigned int seconds = n;
     
-	printf("months %d\n", month);
 	printf("days: %d\n", day);
-	printf("hour: %d\n", hour);
+	printf("hours: %d\n", hour);
 	printf("minutes: %d\n", minutes);
 	printf("seconds: %d\n", seconds);
 }
