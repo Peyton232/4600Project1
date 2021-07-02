@@ -69,7 +69,12 @@ int main()
 	struct processes* prosArr2mem = mmap(NULL, NUM_OF_PROCESSES * sizeof(prosArr2mem), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	struct processes* prosArr4mem = mmap(NULL, NUM_OF_PROCESSES * sizeof(prosArr4mem), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	struct processes* prosArr8mem = mmap(NULL, NUM_OF_PROCESSES * sizeof(prosArr8mem), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-	
+
+	//initialize specialized struct pointers to null
+	memset(prosArr2mem, '\0', sizeof(prosArr2mem));
+	memset(prosArr4mem, '\0', sizeof(prosArr4mem));
+	memset(prosArr8mem, '\0', sizeof(prosArr8mem));
+
 	// Intializes random number generator
 	time_t t;
 	srand((unsigned) time(&t));
@@ -157,6 +162,7 @@ int main()
  * read the processes in randomProcesses.txt and then schdule which processor
  * will run which process
  */
+//scheduler for 2GB processes
 double scheduler2mem(sem_t *sem_id, int *numProcesses, struct processes prosArr2mem[]){
 	double timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
 	double execTime = 0, wait = 0;
@@ -195,6 +201,7 @@ double scheduler2mem(sem_t *sem_id, int *numProcesses, struct processes prosArr2
 	return timeToRun + wait;
 }
 
+//scheduler for 4GB processes
 double scheduler4mem(sem_t *sem_id, int *numProcesses, struct processes prosArr4mem[]){
 	double timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
 	double execTime = 0, wait = 0;
@@ -233,6 +240,7 @@ double scheduler4mem(sem_t *sem_id, int *numProcesses, struct processes prosArr4
 	return timeToRun + wait;
 }
 
+//scheduler for 8GB processes
 double scheduler8mem(sem_t *sem_id, int *numProcesses, struct processes prosArr8mem[]){
 	double timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
 	double execTime = 0, wait = 0;
