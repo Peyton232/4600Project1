@@ -16,6 +16,10 @@
 // total number of processes to generate and schedule 
 #define NUM_OF_PROCESSES 200
 
+//define sizes (expressed in MB*100 to avoid fractional values)
+#define GB2 200000
+#define GB4 400000
+
 // upper and lower limits for how many cycles a process can take
 // add one to upper limit to make the rand inclusive
 #define UPPER_CYCLE 50000000000001
@@ -155,12 +159,10 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], i
 {
 	double timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
 	double execTime = 0, wait = 0;
-	int currentPID = getpid();
 
 	while (*numProcesses > 0)
 	{
-
-		if(prosArr[0].memory >= 400000 && currentPID == procPID[4])
+		if(prosArr[0].memory >= GB4 && procPID[4] == getpid())
 		{
 			// if semaphore available, then continue
 			if (sem_wait(sem_id) < 0)
@@ -177,10 +179,9 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], i
 					printf("%d   : [sem_post] Failed \n", getpid());
 				}
 				return timeToRun + wait;
-			}
-		
+			}	
 			// get next item in posArr
-			printf("%s  time: %llu   mem: %d   pid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
+			printf("name: %s  \ttime: %llu   \tmem: %d   \tpid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
 			*numProcesses = *numProcesses - 1;
 		
 			// calulate timeToRun
@@ -202,7 +203,7 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], i
 			continue;
 		}
 	
-		if((prosArr[0].memory >= 200000 && prosArr[0].memory < 400000) && (currentPID == procPID[4] || currentPID == procPID[3] || currentPID == procPID[2]))
+		if((prosArr[0].memory >= GB2 && prosArr[0].memory < GB4) && (procPID[0] != getpid() && procPID[1] != getpid()))
 		{
 			// if semaphore available, then continue
 			if (sem_wait(sem_id) < 0)
@@ -219,9 +220,8 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], i
 				}
 				return timeToRun + wait;
 			}
-		
 			// get next item in posArr
-			printf("%s  time: %llu   mem: %d   pid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
+			printf("name: %s  \ttime: %llu   \tmem: %d   \tpid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
 			*numProcesses = *numProcesses - 1;
 		
 			// calulate timeToRun
@@ -243,7 +243,7 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], i
 			continue;
 		}
 
-		if(prosArr[0].memory < 200000)
+		if(prosArr[0].memory < GB2)
 		{
 			// if semaphore available, then continue
 			if (sem_wait(sem_id) < 0)
@@ -261,9 +261,8 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], i
 				}
 				return timeToRun + wait;
 			}
-		
 			// get next item in posArr
-			printf("%s  time: %llu   mem: %d   pid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
+			printf("name: %s  \ttime: %llu   \tmem: %d   \tpid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
 			*numProcesses = *numProcesses - 1;
 		
 			// calulate timeToRun
@@ -282,6 +281,7 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], i
 
 			//sleep for last timeToRun /1000
 			usleep(execTime * 100);
+			continue;
 		}
 	}	
 	return timeToRun + wait;
