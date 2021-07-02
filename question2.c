@@ -70,11 +70,6 @@ int main()
 	struct processes* prosArr4mem = mmap(NULL, NUM_OF_PROCESSES * sizeof(prosArr4mem), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	struct processes* prosArr8mem = mmap(NULL, NUM_OF_PROCESSES * sizeof(prosArr8mem), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
-	//initialize specialized struct pointers to null
-	memset(prosArr2mem, '\0', sizeof(prosArr2mem));
-	memset(prosArr4mem, '\0', sizeof(prosArr4mem));
-	memset(prosArr8mem, '\0', sizeof(prosArr8mem));
-
 	// Intializes random number generator
 	time_t t;
 	srand((unsigned) time(&t));
@@ -303,42 +298,37 @@ void sortProcesses(struct processes prosArr[], struct processes prosArr2mem[], s
         } 
         prosArr[j + 1] = key; 
     } 
-printf("debug 1\n");
+
 	//distribute processes to memory limited arrays based on memory size of process
+	j = 0;
 	for (i = 0; i < n; i++)
     { 
-printf("memory: %d\n", prosArr[i].memory);	
-
         if(prosArr[i].memory < 200000)
 		{
-			j = 0;
-			while(prosArr2mem[j].name)
-			{
-				j++;
-			}
 			prosArr2mem[j] = prosArr[i];
+			j++;
 		}  
+	}
+	j = 0;
+	for (i = 0; i < n; i++)
+    { 
         if(prosArr[i].memory >= 200000 && prosArr[i].memory < 400000)
 		{
-			j = 0;
-			while(prosArr4mem[j].name)
-			{
-				j++;
-			}
 			prosArr4mem[j] = prosArr[i];
+			j++;
 		}  
+	}
+	j = 0;
+	for (i = 0; i < n; i++)
+    { 
         if(prosArr[i].memory >= 400000)
 		{
-			j = 0;
-			while(prosArr8mem[j].name)
-			{
-				j++;
-			}
 			prosArr8mem[j] = prosArr[i];
+			j++;
 		}  
+	}
 printf("debug 2\n");	
 
-	}
 }
 
 /*
