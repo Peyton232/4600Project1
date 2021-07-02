@@ -91,13 +91,13 @@ int main()
 	fclose(fp);
 	
 	// sort arr of structs
-	sortProcesses(prosArr);
+	//sortProcesses(prosArr);
 	
 	//test print
-	printPros(prosArr);
+	//printPros(prosArr);
 	
 	//create semaphore to be used for critical sections
-	sem_t *sem_id = sem_open(semName, O_CREAT, 0644, 1);
+	sem_t *sem_id = sem_open(semName, O_CREAT, 0644, 0);
 	if (sem_id == SEM_FAILED)
 	{
         perror("Parent  : [sem_open] Failed\n");
@@ -117,11 +117,14 @@ int main()
 		if (fork() == 0) {
 		   //call scheduling child function here
 		   *totalTime += scheduler(sem_id, numProcesses, prosArr);
-		   printf("peace\n");
 		   exit(0);
 		}
 		// control reaches this point only in the parent
 	}
+	
+	//release control of semaphore
+	if (sem_post(sem_id) < 0)
+		printf("%d   : [sem_post] Failed \n", getpid());
 	
 	// the parent waits for all the child processes to finish
 	while ((wpid = wait(&status)) > 0); 
@@ -162,20 +165,22 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[]){
 		
 		// get next item in posArr
 		printf("%s  time: %llu   mem: %d   pid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
-		memmove(&prosArr[0], &prosArr[1], (NUM_OF_PROCESSES - 1) * sizeof(struct processes));
 		*numProcesses = *numProcesses - 1;
 		
 		// calulate timeToRun
 		execTime = (double)prosArr[0].cycleTime / GHZ;
 		wait += timeToRun;
 		timeToRun += execTime;
+		
+		//move start of prosArr
+		memmove(&prosArr[0], &prosArr[1], (NUM_OF_PROCESSES - 1) * sizeof(struct processes));
 	
 		//release control of semaphore
 		if (sem_post(sem_id) < 0)
 			printf("%d   : [sem_post] Failed \n", getpid());
 		
 		//sleep for last timeToRun /1000
-		usleep(execTime * 1000);
+		usleep(execTime * 100);
 		
 	}	
 	
