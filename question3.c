@@ -11,7 +11,7 @@
 #include <sys/shm.h>         // shmdt
 
 //how to run
-// gcc -pthread main.c
+// gcc -pthread question3.c
 
 // total number of processes to generate and schedule 
 #define NUM_OF_PROCESSES 200
@@ -116,7 +116,6 @@ int main()
 	pid_t child_pid, wpid;
 	int status = 0;
 	fflush(0); // not directly relevant but always a good idea before forking	
-	// add error checking to fork
 	if (fork() == 0){
 		*totalTime += schedulerSlowFirst(sem_id, numProcesses, prosArr, GHZ2);
 		exit(0);
@@ -137,6 +136,9 @@ int main()
 		*totalTime += schedulerFastFirst(sem_id, numProcesses, prosArr, GHZ4);
 		exit(0);
 	}
+	
+	// give children time to all reach semWait
+	sleep(1);
 		
 	//release control of semaphore
 	if (sem_post(sem_id) < 0)
@@ -181,7 +183,7 @@ double schedulerFastFirst(sem_t *sem_id, int *numProcesses, struct processes pro
 		}
 		
 		// get next item in posArr
-		printf("%s  time: %llu   mem: %d   pid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
+		printf("name: %s  \ttime: %llu   \tmem: %d   \tpid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
 		memmove(&prosArr[0], &prosArr[1], (NUM_OF_PROCESSES - 1) * sizeof(struct processes));
 		*numProcesses = *numProcesses - 1;
 		
@@ -224,8 +226,8 @@ double schedulerSlowFirst(sem_t *sem_id, int *numProcesses, struct processes pro
 			return timeToRun + wait;
 		}
 		
-		// get next item in posArr
-		printf("%s  time: %llu   mem: %d   pid: %d\n", prosArr[*numProcesses - 1].name, prosArr[*numProcesses - 1].cycleTime, prosArr[*numProcesses - 1].memory, getpid());
+		// get next item in posArrs
+		printf("name: %s  \ttime: %llu   \tmem: %d   \tpid: %d\n", prosArr[*numProcesses - 1].name, prosArr[*numProcesses - 1].cycleTime, prosArr[*numProcesses - 1].memory, getpid());
 		*numProcesses = *numProcesses - 1;
 		
 		// calulate timeToRun
