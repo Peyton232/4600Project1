@@ -156,7 +156,7 @@ int main()
 }
 
 //functional loop where the 5 children processes will enter and begin to read the 
-//processes in randomProcesses.txt, then schedule which processor will run which process
+//processes from memory then schedule which processor will run which process
 double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], int procPID[])
 {
 	//keep track of wait time + execution time of everything that ran on this processor
