@@ -149,7 +149,7 @@ int main()
 	while ((wpid = wait(&status)) > 0); 
 	
 	//get total time it took to run
-	printf("time to run through all processes: %f\n", *totalTime);
+	printf("time to run through all processes + time processes spent in a queue: %f\n", *totalTime);
 	
 	//put in recognizable terms 
 	convertSectoDay((unsigned long long int)*totalTime);
