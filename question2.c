@@ -1,42 +1,42 @@
-#include <stdio.h>			 // FILE, NULL, fflush, fopen, fclose, printf, etc
-#include <stdlib.h> 		 // rand(), srand()
-#include <time.h>    		 // time()
-#include <sys/types.h>		 // pid_t, size_t
-#include <sys/wait.h>		 // wait
-#include <unistd.h>			 // getpid, fork, sleep
-#include <semaphore.h>		 // sem_t, SEM_FAILED
-#include <fcntl.h>			 // O_CREAT, O_RDONLY, O_WRONLY
-#include <sys/mman.h>        // mman
-#include<string.h>           // memove
-#include <sys/shm.h>         // shmdt
+#include <stdio.h>			 //FILE, NULL, fflush, fopen, fclose, printf, etc
+#include <stdlib.h> 		 //rand(), srand()
+#include <time.h>    		 //time()
+#include <sys/types.h>		 //pid_t, size_t
+#include <sys/wait.h>		 //wait
+#include <unistd.h>			 //getpid, fork, sleep
+#include <semaphore.h>		 //sem_t, SEM_FAILED
+#include <fcntl.h>			 //O_CREAT, O_RDONLY, O_WRONLY
+#include <sys/mman.h>        //mman
+#include<string.h>           //memove
+#include <sys/shm.h>         //shmdt
 
 //how to run
-// gcc -pthread question2.c
+//gcc -pthread main.c
 
-// total number of processes to generate and schedule 
+//total number of processes to generate and schedule 
 #define NUM_OF_PROCESSES 200
 
 //define sizes (expressed in MB*100 to avoid fractional values)
 #define GB2 200000
 #define GB4 400000
 
-// upper and lower limits for how many cycles a process can take
-// add one to upper limit to make the rand inclusive
+//upper and lower limits for how many cycles a process can take
+//add one to upper limit to make the rand inclusive
 #define UPPER_CYCLE 50000000000001
 #define LOWER_CYCLE 10000000
 
-// upper and lower limits for ammount of memory a process can take
-// expressed in MB * 100 to avoid fractional numbers
+//upper and lower limits for ammount of memory a process can take
+//expressed in MB * 100 to avoid fractional numbers
 #define UPPER_MEMORY 800000
 #define LOWER_MEMORY 25
 
 //clock speed 
 #define GHZ 8000000000
 
-// will be used to lock down file I/O between processes to keep it atomic
+//will be used to lock down file I/O between processes to keep it atomic
 const char *semName = "/semLock";
-// rogue semaphores are here - /dev/shm
-// if weird error with semaphore check if it is still left open here
+//rogue semaphores are here - /dev/shm
+//if weird error with semaphore check if it is still left open here
 
 //structs
 struct processes
@@ -133,9 +133,6 @@ int main()
 	for(int i = 0; i < 5; i++)
 		printf("%d: %d\n", i, procPID[i]);
 	
-	// give children time to all reach semWait
-	sleep(1);
-	
 	//release control of semaphore
 	if (sem_post(sem_id) < 0)
 	{
@@ -146,7 +143,7 @@ int main()
 	while ((wpid = wait(&status)) > 0); 
 	
 	//get total time it took to run
-	printf("time to run through all processes + time processes spent in a queue: %f\n", *totalTime);
+	printf("time to run through all processes: %f\n", *totalTime);
 	
 	//put in recognizable terms 
 	convertSectoDay((unsigned long long int)*totalTime);
@@ -188,7 +185,6 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], i
 
 		if(prosArr[0].memory >= GB4 && procPID[4] == getpid())
 		{
-
 			// get next item in posArr
 			printf("name: %s  \ttime: %llu   \tmem: %d   \tpid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
 			*numProcesses = *numProcesses - 1;
@@ -200,8 +196,6 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], i
 		
 			//move start of prosArr
 			memmove(&prosArr[0], &prosArr[1], (NUM_OF_PROCESSES - 1) * sizeof(struct processes));
-
-			
 		} 
 		else if((prosArr[0].memory >= GB2 && prosArr[0].memory < GB4) && (procPID[0] != getpid() && procPID[1] != getpid()))
 		{
@@ -242,7 +236,6 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], i
 		
 		//sleep for last timeToRun /1000
 		usleep(execTime * 100);
-
 	}	
 	return timeToRun + wait;
 }
