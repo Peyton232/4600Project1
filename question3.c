@@ -1,28 +1,28 @@
-#include <stdio.h>			 // FILE, NULL, fflush, fopen, fclose, printf, etc
-#include <stdlib.h> 		 // rand(), srand()
-#include <time.h>    		 // time()
-#include <sys/types.h>		 // pid_t, size_t
-#include <sys/wait.h>		 // wait
-#include <unistd.h>			 // getpid, fork, sleep
-#include <semaphore.h>		 // sem_t, SEM_FAILED
-#include <fcntl.h>			 // O_CREAT, O_RDONLY, O_WRONLY
-#include <sys/mman.h>        // mman
-#include<string.h>           // memove
-#include <sys/shm.h>         // shmdt
+#include <stdio.h>			 //FILE, NULL, fflush, fopen, fclose, printf, etc
+#include <stdlib.h> 		 //rand(), srand()
+#include <time.h>    		 //time()
+#include <sys/types.h>		 //pid_t, size_t
+#include <sys/wait.h>		 //wait
+#include <unistd.h>			 //getpid, fork, sleep
+#include <semaphore.h>		 //sem_t, SEM_FAILED
+#include <fcntl.h>			 //O_CREAT, O_RDONLY, O_WRONLY
+#include <sys/mman.h>        //mman
+#include<string.h>           //memove
+#include <sys/shm.h>         //shmdt
 
 //how to run
-// gcc -pthread question3.c
+//gcc -pthread question3.c
 
-// total number of processes to generate and schedule 
+//total number of processes to generate and schedule 
 #define NUM_OF_PROCESSES 200
 
-// upper and lower limits for how many cycles a process can take
-// add one to upper limit to make the rand inclusive
+//upper and lower limits for how many cycles a process can take
+//add one to upper limit to make the rand inclusive
 #define UPPER_CYCLE 50000000000001
 #define LOWER_CYCLE 10000000
 
-// upper and lower limits for ammount of memory a process can take
-// expressed in MB * 100 to avoid fractional numbers
+//upper and lower limits for ammount of memory a process can take
+//expressed in MB * 100 to avoid fractional numbers
 #define UPPER_MEMORY 800000
 #define LOWER_MEMORY 25
 
@@ -31,13 +31,14 @@
 #define GHZ3 3000000000
 #define GHZ4 4000000000
 
-// will be used to lock down file I/O between processes to keep it atomic
+//will be used to lock down file I/O between processes to keep it atomic
 const char *semName = "/semLock";
-// rogue semaphores are here - /dev/shm
-// if weird error with semaphore check if it is still left open here
+//rogue semaphores are here - /dev/shm
+//if weird error with semaphore check if it is still left open here
 
 //structs
-struct processes{
+struct processes
+{
 	char name[5];
 	unsigned long long int cycleTime;
 	int memory;
@@ -115,7 +116,6 @@ int main()
 	//create 5 children to go and begin execution
 	pid_t child_pid, wpid;
 	int status = 0;
-	fflush(0); // not directly relevant but always a good idea before forking	
 	if (fork() == 0){
 		*totalTime += schedulerSlowFirst(sem_id, numProcesses, prosArr, GHZ2);
 		exit(0);
@@ -144,12 +144,11 @@ int main()
 	if (sem_post(sem_id) < 0)
 		printf("%d   : [sem_post] Failed \n", getpid());
 	
-	
 	// the parent waits for all the child processes to finish
 	while ((wpid = wait(&status)) > 0); 
 	
 	//get total time it took to run
-	printf("time to run through all processes + time processes spent in a queue: %f\n", *totalTime);
+	printf("time to run through all processes: %f\n", *totalTime);
 	
 	//put in recognizable terms 
 	convertSectoDay((unsigned long long int)*totalTime);
@@ -166,17 +165,20 @@ int main()
  * read the processes in randomProcesses.txt and then schdule which processor
  * will run which process
  */
-double schedulerFastFirst(sem_t *sem_id, int *numProcesses, struct processes prosArr[], long long ghz){
+double schedulerFastFirst(sem_t *sem_id, int *numProcesses, struct processes prosArr[], long long ghz)
+{
 	double timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
 	double execTime = 0, wait = 0;
 	
-	while (*numProcesses > 0){
+	while (*numProcesses > 0)
+	{
 		// if semaphore available, then continue
 		if (sem_wait(sem_id) < 0)
 			printf("%d  : [sem_wait] Failed\n", getpid());
 		// THIS IS CRITICAL SECTION
 		
-		if (*numProcesses <= 0){
+		if (*numProcesses <= 0)
+		{
 			if (sem_post(sem_id) < 0)
 				printf("%d   : [sem_post] Failed \n", getpid());
 			return timeToRun + wait;
@@ -201,7 +203,6 @@ double schedulerFastFirst(sem_t *sem_id, int *numProcesses, struct processes pro
 		usleep(execTime);
 		
 	}	
-	
 	return timeToRun + wait;
 }
 
@@ -210,22 +211,24 @@ double schedulerFastFirst(sem_t *sem_id, int *numProcesses, struct processes pro
  * read the processes in randomProcesses.txt and then schdule which processor
  * will run which process
  */
-double schedulerSlowFirst(sem_t *sem_id, int *numProcesses, struct processes prosArr[], long long ghz){
+double schedulerSlowFirst(sem_t *sem_id, int *numProcesses, struct processes prosArr[], long long ghz)
+{
 	double timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
 	double execTime = 0, wait = 0;
 	
-	while (*numProcesses > 0){
+	while (*numProcesses > 0)
+	{
 		// if semaphore available, then continue
 		if (sem_wait(sem_id) < 0)
 			printf("%d  : [sem_wait] Failed\n", getpid());
 		// THIS IS CRITICAL SECTION
 		
-		if (*numProcesses <= 0){
+		if (*numProcesses <= 0)
+		{
 			if (sem_post(sem_id) < 0)
 				printf("%d   : [sem_post] Failed \n", getpid());
 			return timeToRun + wait;
 		}
-		
 		// get next item in posArrs
 		printf("name: %s  \ttime: %llu   \tmem: %d   \tpid: %d\n", prosArr[*numProcesses - 1].name, prosArr[*numProcesses - 1].cycleTime, prosArr[*numProcesses - 1].memory, getpid());
 		*numProcesses = *numProcesses - 1;
@@ -242,9 +245,7 @@ double schedulerSlowFirst(sem_t *sem_id, int *numProcesses, struct processes pro
 		//sleep for last timeToRun /1000
 		execTime *= 1000;
 		usleep(execTime);
-		
 	}	
-	
 	return timeToRun + wait;
 }
 
@@ -252,7 +253,8 @@ double schedulerSlowFirst(sem_t *sem_id, int *numProcesses, struct processes pro
  * take in the arr of processes 
  * and sort based on time needed to run
  */
-void sortProcesses(struct processes prosArr[]){
+void sortProcesses(struct processes prosArr[])
+{
 	int i, j;
 	int n = NUM_OF_PROCESSES;
 	struct processes key;
@@ -276,7 +278,8 @@ void sortProcesses(struct processes prosArr[]){
 /*
  * test print for the array of processes
  */
-void printPros(struct processes prosArr[]){
+void printPros(struct processes prosArr[])
+{
 	int n = NUM_OF_PROCESSES;
 	for (int i = 1; i < n; i++)
     { 
@@ -310,4 +313,3 @@ void convertSectoDay(unsigned long long int n)
 	printf("minutes: %d\n", minutes);
 	printf("seconds: %d\n", seconds);
 }
-
