@@ -157,29 +157,37 @@ int main()
 //processes in randomProcesses.txt, then schedule which processor will run which process
 double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], int procPID[])
 {
-	double timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
-	double execTime = 0, wait = 0;
+	//keep track of wait time + execution time of everything that ran on this processor
+	double timeToRun = 0;       
+	double execTime = 0;
+	double wait = 0;
+printf("bug1\n");
 
 	while (*numProcesses > 0)
 	{
+printf("bug2\n");
+		// if semaphore available, then continue
+		if (sem_wait(sem_id) < 0)
+		{
+			printf("%d  : [sem_wait] Failed\n", getpid());
+		}
+
+		// THIS IS CRITICAL SECTION
+	
+		if (*numProcesses <= 0)
+		{
+			if (sem_post(sem_id) < 0)
+			{
+				printf("%d   : [sem_post] Failed \n", getpid());
+			}
+			return timeToRun + wait;
+		}	
+printf("bug3\n");
+
 		if(prosArr[0].memory >= GB4 && procPID[4] == getpid())
 		{
-			// if semaphore available, then continue
-			if (sem_wait(sem_id) < 0)
-			{
-				printf("%d  : [sem_wait] Failed\n", getpid());
-			}
+printf("bug4\n");
 
-			// THIS IS CRITICAL SECTION
-		
-			if (*numProcesses <= 0)
-			{
-				if (sem_post(sem_id) < 0)
-				{
-					printf("%d   : [sem_post] Failed \n", getpid());
-				}
-				return timeToRun + wait;
-			}	
 			// get next item in posArr
 			printf("name: %s  \ttime: %llu   \tmem: %d   \tpid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
 			*numProcesses = *numProcesses - 1;
@@ -205,21 +213,8 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], i
 	
 		if((prosArr[0].memory >= GB2 && prosArr[0].memory < GB4) && (procPID[0] != getpid() && procPID[1] != getpid()))
 		{
-			// if semaphore available, then continue
-			if (sem_wait(sem_id) < 0)
-			{
-				printf("%d  : [sem_wait] Failed\n", getpid());
-			}
+printf("bug5\n");
 
-			// THIS IS CRITICAL SECTION
-			if (*numProcesses <= 0)
-			{
-				if (sem_post(sem_id) < 0)
-				{
-					printf("%d   : [sem_post] Failed \n", getpid());
-				}
-				return timeToRun + wait;
-			}
 			// get next item in posArr
 			printf("name: %s  \ttime: %llu   \tmem: %d   \tpid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
 			*numProcesses = *numProcesses - 1;
@@ -245,22 +240,8 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], i
 
 		if(prosArr[0].memory < GB2)
 		{
-			// if semaphore available, then continue
-			if (sem_wait(sem_id) < 0)
-			{
-				printf("%d  : [sem_wait] Failed\n", getpid());
-			}
+printf("bug6\n");
 
-			// THIS IS CRITICAL SECTION
-		
-			if (*numProcesses <= 0)
-			{
-				if (sem_post(sem_id) < 0)
-				{
-					printf("%d   : [sem_post] Failed \n", getpid());
-				}
-				return timeToRun + wait;
-			}
 			// get next item in posArr
 			printf("name: %s  \ttime: %llu   \tmem: %d   \tpid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
 			*numProcesses = *numProcesses - 1;
@@ -283,6 +264,9 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], i
 			usleep(execTime * 100);
 			continue;
 		}
+
+
+
 	}	
 	return timeToRun + wait;
 }
