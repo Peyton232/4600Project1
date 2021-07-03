@@ -11,7 +11,7 @@
 #include <sys/shm.h>         //shmdt
 
 //how to run
-//gcc -pthread main.c
+//gcc -pthread question2.c
 
 //total number of processes to generate and schedule 
 #define NUM_OF_PROCESSES 200
