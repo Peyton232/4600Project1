@@ -11,7 +11,7 @@
 #include <sys/shm.h>         // shmdt
 
 //how to run
-// gcc -pthread question4.c
+// gcc -pthread main.c
 
 // total number of processes to generate and schedule 
 #define NUM_OF_PROCESSES 200
@@ -65,6 +65,7 @@ typedef struct Heap Heap;
 // heap methods
 Heap *CreateHeap(int capacity, struct processes heap_type, Heap *h);
 void insert(Heap *h, struct processes key);
+int isEmpty(Heap *h);
 void print(Heap *h);
 void heapify_bottom_top(Heap *h,int index);
 void heapify_top_bottom(Heap *h, int parent_node);
@@ -72,7 +73,7 @@ struct processes PopMin(Heap *h);
 
 //protoypes
 double scheduler(sem_t *sem_id, int *numProcesses, Heap *h);
-void taskGiver(struct processes prosArr[], Heap *h);
+void taskGiver(struct processes prosArr[], Heap *h, sem_t *sem_id);
 void sortProcesses(struct processes prosArr[]);
 void printPros(struct processes prosArr[]);
 void convertSectoDay(unsigned long long int totalTime);
@@ -159,11 +160,7 @@ int main()
 	}
 	
 	// schedule takss in heap
-	taskGiver(prosArr, h);
-	
-	//release control of semaphore
-	if (sem_post(sem_id) < 0)
-		printf("%d   : [sem_post] Failed \n", getpid());
+	taskGiver(prosArr, h, sem_id);
 	
 	// the parent waits for all the child processes to finish
 	while ((wpid = wait(&status)) > 0); 
@@ -191,13 +188,27 @@ double scheduler(sem_t *sem_id, int *numProcesses, Heap *h){
 	double execTime = 0, wait = 0;
 	struct processes temp;
 	
-	sleep(2);	//TODO replace with another semaphore that signals the start of porcess reading
-	
+	// wait here till taskGiver signifies a start
+	//if (sem_wait(sem_id_clock) < 0)
+	//	printf("%d  : [sem_wait] Failed\n", getpid());
+	//if (sem_post(sem_id_clock) < 0)
+	//		printf("%d   : [sem_post] Failed \n", getpid());
 	while (*numProcesses > 0){
+		
 		// if semaphore available, then continue
 		if (sem_wait(sem_id) < 0)
 			printf("%d  : [sem_wait] Failed\n", getpid());
 		// THIS IS CRITICAL SECTION
+		
+		
+		//check if process available
+		if (isEmpty(h) == 1){
+			//release control of semaphore
+			if (sem_post(sem_id) < 0)
+				printf("%d   : [sem_post] Failed \n", getpid());
+			continue;
+		}
+		
 		
 		if (*numProcesses <= 0){
 			if (sem_post(sem_id) < 0)
@@ -224,7 +235,7 @@ double scheduler(sem_t *sem_id, int *numProcesses, Heap *h){
 			printf("%d   : [sem_post] Failed \n", getpid());
 		
 		//sleep for last timeToRun /1000
-		//usleep(execTime * 100);
+		usleep(execTime * 100);
 		
 	}	
 	
@@ -235,9 +246,25 @@ double scheduler(sem_t *sem_id, int *numProcesses, Heap *h){
  * add tasks to the max heap 
  * when they become available
  */
-void taskGiver(struct processes prosArr[], Heap *h){
+void taskGiver(struct processes prosArr[], Heap *h, sem_t *sem_id){
+	
+	int currentTime = 0;
+	int wait = 0;
+	
+	//release control of semaphore
+	if (sem_post(sem_id) < 0)
+		printf("%d   : [sem_post] Failed \n", getpid());
+	
 	for(int i = 0; i < NUM_OF_PROCESSES; i++){
-		insert(h, prosArr[i]);
+		if (prosArr[i].arrivalTime <= currentTime){
+			insert(h, prosArr[i]);
+		} else {
+			wait = abs(currentTime - prosArr[i].arrivalTime);
+			usleep(wait * 100);
+			currentTime += wait;
+			insert(h, prosArr[i]);
+		}
+		
 	}
 	printf("all added\n");
 }
@@ -332,6 +359,13 @@ void insert(Heap *h, struct processes key){
         heapify_bottom_top(h, h->count);
         h->count++;
     }
+}
+
+int isEmpty(Heap *h){
+    if(h->count==0){
+        return 1;
+    }
+	return 0;
 }
 
 void heapify_bottom_top(Heap *h,int index){
