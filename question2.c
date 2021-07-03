@@ -118,7 +118,6 @@ int main()
 	//create 5 children to go and begin execution
 	pid_t child_pid, wpid;
 	int status = 0;
-	fflush(0); // not directly relevant but always a good idea before forking
 	for (int i = 0; i < 5; i++) 
 	{
 		if (fork() == 0) 
@@ -164,8 +163,6 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], i
 	double timeToRun = 0;       
 	double execTime = 0;
 	double wait = 0;
-	
-	sleep(1);
 
 	while (*numProcesses > 0)
 	{
