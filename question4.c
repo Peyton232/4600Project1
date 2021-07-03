@@ -122,6 +122,7 @@ int main()
 	int status = 0;
 	fflush(0); // not directly relevant but always a good idea before forking
 	for (int i = 0; i < 5; i++) {
+		// add error checking to fork
 		if (fork() == 0) {
 		   //call scheduling child function here
 		   *totalTime += scheduler(sem_id, numProcesses, prosArr);
