@@ -181,7 +181,7 @@ int main()
 
 /*
  * functional loop where the 5 children processes will go into and begin to 
- * read the processes in randomProcesses.txt and then schdule which processor
+ * read the processes from memory and then schdule which processor
  * will run which process
  */
 double scheduler(sem_t *sem_id, int *numProcesses, Heap *h)
