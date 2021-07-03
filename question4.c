@@ -166,7 +166,7 @@ int main()
 	while ((wpid = wait(&status)) > 0); 
 	
 	//get total time it took to run
-	printf("time to run through all processes: %f\n", *totalTime);
+	printf("time to run through all processes + time processes spent in a queue: %f\n", *totalTime);
 	
 	//put in recognizable terms 
 	convertSectoDay((unsigned long long int)*totalTime);
@@ -185,7 +185,8 @@ int main()
  */
 double scheduler(sem_t *sem_id, int *numProcesses, Heap *h){
 	double timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
-	double execTime = 0, wait = 0;
+	double execTime = 0;
+	double waitList = 0;
 	struct processes temp;
 	
 	// wait here till taskGiver signifies a start
@@ -206,6 +207,9 @@ double scheduler(sem_t *sem_id, int *numProcesses, Heap *h){
 			//release control of semaphore
 			if (sem_post(sem_id) < 0)
 				printf("%d   : [sem_post] Failed \n", getpid());
+			
+			waitList = 0;
+			
 			continue;
 		}
 		
@@ -213,7 +217,7 @@ double scheduler(sem_t *sem_id, int *numProcesses, Heap *h){
 		if (*numProcesses <= 0){
 			if (sem_post(sem_id) < 0)
 				printf("%d   : [sem_post] Failed \n", getpid());
-			return timeToRun + wait;
+			return timeToRun;
 		}
 		
 		// get next item in the heap
@@ -224,7 +228,7 @@ double scheduler(sem_t *sem_id, int *numProcesses, Heap *h){
 		
 		// calulate timeToRun
 		execTime = (double)temp.cycleTime / GHZ;
-		wait += timeToRun;
+		execTime += waitList;
 		timeToRun += execTime;
 		
 		//move start of prosArr
@@ -239,7 +243,7 @@ double scheduler(sem_t *sem_id, int *numProcesses, Heap *h){
 		
 	}	
 	
-	return timeToRun + wait;
+	return timeToRun;
 }
 
 /*
