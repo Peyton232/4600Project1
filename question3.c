@@ -116,6 +116,7 @@ int main()
 	pid_t child_pid, wpid;
 	int status = 0;
 	fflush(0); // not directly relevant but always a good idea before forking	
+	// add error checking to fork
 	if (fork() == 0){
 		*totalTime += schedulerSlowFirst(sem_id, numProcesses, prosArr, GHZ2);
 		exit(0);
