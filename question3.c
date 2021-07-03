@@ -45,8 +45,8 @@ struct processes
 };
 
 //protoypes
-double schedulerFastFirst(sem_t *sem_id, int *numProcesses, struct processes prosArr[], long long ghz);
-double schedulerSlowFirst(sem_t *sem_id, int *numProcesses, struct processes prosArr[], long long ghz);
+double schedulerSmallFirst(sem_t *sem_id, int *numProcesses, struct processes prosArr[], long long ghz);
+double schedulerBigFirst(sem_t *sem_id, int *numProcesses, struct processes prosArr[], long long ghz);
 void sortProcesses(struct processes prosArr[]);
 void printPros(struct processes prosArr[]);
 void convertSectoDay(unsigned long long int totalTime);
@@ -117,23 +117,23 @@ int main()
 	pid_t child_pid, wpid;
 	int status = 0;
 	if (fork() == 0){
-		*totalTime += schedulerSlowFirst(sem_id, numProcesses, prosArr, GHZ2);
+		*totalTime += schedulerBigFirst(sem_id, numProcesses, prosArr, GHZ2);
 		exit(0);
 	}
 	if (fork() == 0){
-		*totalTime += schedulerSlowFirst(sem_id, numProcesses, prosArr, GHZ2);
+		*totalTime += schedulerBigFirst(sem_id, numProcesses, prosArr, GHZ2);
 		exit(0);
 	}
 	if (fork() == 0){
-		*totalTime += schedulerSlowFirst(sem_id, numProcesses, prosArr, GHZ3);
+		*totalTime += schedulerBigFirst(sem_id, numProcesses, prosArr, GHZ3);
 		exit(0);
 	}
 	if (fork() == 0){
-		*totalTime += schedulerFastFirst(sem_id, numProcesses, prosArr, GHZ3);
+		*totalTime += schedulerSmallFirst(sem_id, numProcesses, prosArr, GHZ3);
 		exit(0);
 	}
 	if (fork() == 0){
-		*totalTime += schedulerFastFirst(sem_id, numProcesses, prosArr, GHZ4);
+		*totalTime += schedulerSmallFirst(sem_id, numProcesses, prosArr, GHZ4);
 		exit(0);
 	}
 	
@@ -160,12 +160,12 @@ int main()
     return 0;
 }
 
-/*
- * functional loop where the 3 slower children processes will go into and begin to 
- * read the processes in randomProcesses.txt and then schdule which processor
+ /*
+ * functional loop where the 2 faster children processes will go into and begin to 
+ * read the processes from memory and then schdule which processor
  * will run which process
  */
-double schedulerFastFirst(sem_t *sem_id, int *numProcesses, struct processes prosArr[], long long ghz)
+double schedulerSmallFirst(sem_t *sem_id, int *numProcesses, struct processes prosArr[], long long ghz)
 {
 	double timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
 	double execTime = 0, wait = 0;
@@ -207,11 +207,11 @@ double schedulerFastFirst(sem_t *sem_id, int *numProcesses, struct processes pro
 }
 
 /*
- * functional loop where the 2 faster children processes will go into and begin to 
- * read the processes in randomProcesses.txt and then schdule which processor
+ * functional loop where the 3 slower children processes will go into and begin to 
+ * read the processes from memory and then schdule which processor
  * will run which process
  */
-double schedulerSlowFirst(sem_t *sem_id, int *numProcesses, struct processes prosArr[], long long ghz)
+double schedulerBigFirst(sem_t *sem_id, int *numProcesses, struct processes prosArr[], long long ghz)
 {
 	double timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
 	double execTime = 0, wait = 0;
