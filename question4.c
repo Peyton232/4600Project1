@@ -1,28 +1,28 @@
-#include <stdio.h>			 // FILE, NULL, fflush, fopen, fclose, printf, etc
-#include <stdlib.h> 		 // rand(), srand()
-#include <time.h>    		 // time()
-#include <sys/types.h>		 // pid_t, size_t
-#include <sys/wait.h>		 // wait
-#include <unistd.h>			 // getpid, fork, sleep
-#include <semaphore.h>		 // sem_t, SEM_FAILED
-#include <fcntl.h>			 // O_CREAT, O_RDONLY, O_WRONLY
-#include <sys/mman.h>        // mman
-#include<string.h>           // memove
-#include <sys/shm.h>         // shmdt
+#include <stdio.h>			 //FILE, NULL, fflush, fopen, fclose, printf, etc
+#include <stdlib.h> 		 //rand(), srand()
+#include <time.h>    		 //time()
+#include <sys/types.h>		 //pid_t, size_t
+#include <sys/wait.h>		 //wait
+#include <unistd.h>			 //getpid, fork, sleep
+#include <semaphore.h>		 //sem_t, SEM_FAILED
+#include <fcntl.h>			 //O_CREAT, O_RDONLY, O_WRONLY
+#include <sys/mman.h>        //mman
+#include<string.h>           //memove
+#include <sys/shm.h>         //shmdt
 
 //how to run
-// gcc -pthread main.c
+//gcc -pthread main.c
 
-// total number of processes to generate and schedule 
+//total number of processes to generate and schedule 
 #define NUM_OF_PROCESSES 200
 
-// upper and lower limits for how many cycles a process can take
-// add one to upper limit to make the rand inclusive
+//upper and lower limits for how many cycles a process can take
+//add one to upper limit to make the rand inclusive
 #define UPPER_CYCLE 50000000000001
 #define LOWER_CYCLE 10000000
 
-// upper and lower limits for ammount of memory a process can take
-// expressed in MB * 100 to avoid fractional numbers
+//upper and lower limits for ammount of memory a process can take
+//expressed in MB * 100 to avoid fractional numbers
 #define UPPER_MEMORY 800000
 #define LOWER_MEMORY 25
 
@@ -33,13 +33,14 @@
 //clock speed 
 #define GHZ 8000000000
 
-// will be used to lock down file I/O between processes to keep it atomic
+//will be used to lock down file I/O between processes to keep it atomic
 const char *semName = "/semLock";
-// rogue semaphores are here - /dev/shm
-// if weird error with semaphore check if it is still left open here
+//rogue semaphores are here - /dev/shm
+//if weird error with semaphore check if it is still left open here
 
 //structs
-struct processes{
+struct processes
+{
 	char name[5];
 	unsigned long long int cycleTime;
 	int memory;
@@ -50,10 +51,11 @@ struct processes{
  Array Implementation of MinHeap data Structure
 */
 
-// max heap size
+//max heap size
 #define HEAP_SIZE 200
 
-struct Heap{
+struct Heap
+{
     struct processes arr[NUM_OF_PROCESSES];
     int count;
     int capacity;
@@ -62,7 +64,7 @@ struct Heap{
 
 typedef struct Heap Heap;
 
-// heap methods
+//heap methods
 Heap *CreateHeap(int capacity, struct processes heap_type, Heap *h);
 void insert(Heap *h, struct processes key);
 int isEmpty(Heap *h);
@@ -90,17 +92,17 @@ int main()
 	struct processes prosArr[NUM_OF_PROCESSES];
 	
 	//SHARED MEMORY
-	// time each processor spent running
+	//time each processor spent running
 	double *totalTime = mmap(NULL, sizeof *totalTime, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	*totalTime = 0;
 	int *numProcesses = mmap(NULL, sizeof *numProcesses, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	*numProcesses = NUM_OF_PROCESSES;
 
-	// shared heap
+	//shared heap
 	Heap *h = mmap(NULL, sizeof(Heap), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	CreateHeap(HEAP_SIZE, prosArr[0], h);
 	
-	// Intializes random number generator
+	//Intializes random number generator
 	time_t t;
 	srand((unsigned) time(&t));
 	
@@ -126,7 +128,7 @@ int main()
 	//close file
 	fclose(fp);
 	
-	// sort arr of structs
+	//sort arr of structs
 	sortProcesses(prosArr);
 	
 	//test print
@@ -149,9 +151,11 @@ int main()
 	pid_t child_pid, wpid;
 	int status = 0;
 	
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < 5; i++) 
+	{
 		// add error checking to fork
-		if (fork() == 0) {
+		if (fork() == 0) 
+		{
 		   //call scheduling child function here
 		   *totalTime += scheduler(sem_id, numProcesses, h);
 		   exit(0);
@@ -159,10 +163,10 @@ int main()
 		// control reaches this point only in the parent
 	}
 	
-	// schedule takss in heap
+	//schedule takss in heap
 	taskGiver(prosArr, h, sem_id);
 	
-	// the parent waits for all the child processes to finish
+	//the parent waits for all the child processes to finish
 	while ((wpid = wait(&status)) > 0); 
 	
 	//get total time it took to run
@@ -183,27 +187,29 @@ int main()
  * read the processes in randomProcesses.txt and then schdule which processor
  * will run which process
  */
-double scheduler(sem_t *sem_id, int *numProcesses, Heap *h){
+double scheduler(sem_t *sem_id, int *numProcesses, Heap *h)
+{
 	double timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
 	double execTime = 0;
 	double waitList = 0;
 	struct processes temp;
 	
-	// wait here till taskGiver signifies a start
+	//wait here till taskGiver signifies a start
 	//if (sem_wait(sem_id_clock) < 0)
-	//	printf("%d  : [sem_wait] Failed\n", getpid());
+	//printf("%d  : [sem_wait] Failed\n", getpid());
 	//if (sem_post(sem_id_clock) < 0)
 	//		printf("%d   : [sem_post] Failed \n", getpid());
 	while (*numProcesses > 0){
 		
-		// if semaphore available, then continue
+		//if semaphore available, then continue
 		if (sem_wait(sem_id) < 0)
 			printf("%d  : [sem_wait] Failed\n", getpid());
-		// THIS IS CRITICAL SECTION
+		//THIS IS CRITICAL SECTION
 		
 		
 		//check if process available
-		if (isEmpty(h) == 1){
+		if (isEmpty(h) == 1)
+		{
 			//release control of semaphore
 			if (sem_post(sem_id) < 0)
 				printf("%d   : [sem_post] Failed \n", getpid());
@@ -214,19 +220,20 @@ double scheduler(sem_t *sem_id, int *numProcesses, Heap *h){
 		}
 		
 		
-		if (*numProcesses <= 0){
+		if (*numProcesses <= 0)
+		{
 			if (sem_post(sem_id) < 0)
 				printf("%d   : [sem_post] Failed \n", getpid());
 			return timeToRun;
 		}
 		
-		// get next item in the heap
+		//get next item in the heap
 		temp = PopMin(h);
 		
 		printf("name: %s  \ttime: %llu   \tmem: %d   \tarrival Time: %d   \tpid: %d\n", temp.name, temp.cycleTime, temp.memory, temp.arrivalTime, getpid());
 		*numProcesses = *numProcesses - 1;
 		
-		// calulate timeToRun
+		//calulate timeToRun
 		execTime = (double)temp.cycleTime / GHZ;
 		execTime += waitList;
 		timeToRun += execTime;
@@ -240,9 +247,7 @@ double scheduler(sem_t *sem_id, int *numProcesses, Heap *h){
 		
 		//sleep for last timeToRun /1000
 		usleep(execTime * 100);
-		
 	}	
-	
 	return timeToRun;
 }
 
@@ -250,8 +255,8 @@ double scheduler(sem_t *sem_id, int *numProcesses, Heap *h){
  * add tasks to the max heap 
  * when they become available
  */
-void taskGiver(struct processes prosArr[], Heap *h, sem_t *sem_id){
-	
+void taskGiver(struct processes prosArr[], Heap *h, sem_t *sem_id)
+{
 	int currentTime = 0;
 	int wait = 0;
 	
@@ -259,10 +264,14 @@ void taskGiver(struct processes prosArr[], Heap *h, sem_t *sem_id){
 	if (sem_post(sem_id) < 0)
 		printf("%d   : [sem_post] Failed \n", getpid());
 	
-	for(int i = 0; i < NUM_OF_PROCESSES; i++){
-		if (prosArr[i].arrivalTime <= currentTime){
+	for(int i = 0; i < NUM_OF_PROCESSES; i++)
+	{
+		if (prosArr[i].arrivalTime <= currentTime)
+		{
 			insert(h, prosArr[i]);
-		} else {
+		} 
+		else 
+		{
 			wait = abs(currentTime - prosArr[i].arrivalTime);
 			usleep(wait * 100);
 			currentTime += wait;
@@ -277,7 +286,8 @@ void taskGiver(struct processes prosArr[], Heap *h, sem_t *sem_id){
  * take in the arr of processes 
  * and sort based on arrival time
  */
-void sortProcesses(struct processes prosArr[]){
+void sortProcesses(struct processes prosArr[])
+{
 	int i, j;
 	int n = NUM_OF_PROCESSES;
 	struct processes key;
@@ -286,9 +296,11 @@ void sortProcesses(struct processes prosArr[]){
         key = prosArr[i]; 
         j = i - 1; 
 
-        /* Move elements of arr[0..i-1], that are 
-        greater than key, to one position ahead 
-        of their current position */
+        /* 
+		 * Move elements of arr[0..i-1], that are 
+         * greater than key, to one position ahead 
+         * of their current position 
+		 */
         while (j >= 0 && prosArr[j].arrivalTime > key.arrivalTime)
         { 
             prosArr[j + 1] = prosArr[j];
@@ -301,7 +313,8 @@ void sortProcesses(struct processes prosArr[]){
 /*
  * test print for the array of processes
  */
-void printPros(struct processes prosArr[]){
+void printPros(struct processes prosArr[])
+{
 	int n = NUM_OF_PROCESSES;
 	for (int i = 1; i < n; i++)
     { 
@@ -337,10 +350,11 @@ void convertSectoDay(unsigned long long int n)
 }
 
 // heap methods
-Heap *CreateHeap(int capacity, struct processes heap_type, Heap *h){
-
+Heap *CreateHeap(int capacity, struct processes heap_type, Heap *h)
+{
     //check if memory allocation is fails
-    if(h == NULL){
+    if(h == NULL)
+	{
         printf("Memory Error!");
         return NULL;
     }
@@ -350,33 +364,40 @@ Heap *CreateHeap(int capacity, struct processes heap_type, Heap *h){
     //h->arr = (struct processes *) malloc(capacity*sizeof(struct processes));
 
     //check if allocation succeed
-    if ( h->arr == NULL){
+    if ( h->arr == NULL)
+	{
         printf("Memory Error!");
         return NULL;
     }
     return h;
 }
 
-void insert(Heap *h, struct processes key){
-    if( h->count < h->capacity){
+void insert(Heap *h, struct processes key)
+{
+    if( h->count < h->capacity)
+	{
         h->arr[h->count] = key;
         heapify_bottom_top(h, h->count);
         h->count++;
     }
 }
 
-int isEmpty(Heap *h){
-    if(h->count==0){
+int isEmpty(Heap *h)
+{
+    if(h->count==0)
+	{
         return 1;
     }
 	return 0;
 }
 
-void heapify_bottom_top(Heap *h,int index){
+void heapify_bottom_top(Heap *h,int index)
+{
     struct processes temp;
     int parent_node = (index-1)/2;
 
-    if(h->arr[parent_node].cycleTime > h->arr[index].cycleTime){
+    if(h->arr[parent_node].cycleTime > h->arr[index].cycleTime)
+	{
         //swap and recursive call
         temp = h->arr[parent_node];
         h->arr[parent_node] = h->arr[index];
@@ -385,7 +406,8 @@ void heapify_bottom_top(Heap *h,int index){
     }
 }
 
-void heapify_top_bottom(Heap *h, int parent_node){
+void heapify_top_bottom(Heap *h, int parent_node)
+{
     int left = parent_node*2+1;
     int right = parent_node*2+2;
     int min;
@@ -403,7 +425,8 @@ void heapify_top_bottom(Heap *h, int parent_node){
     if(right != -1 && h->arr[right].cycleTime < h->arr[min].cycleTime)
         min = right;
 
-    if(min != parent_node){
+    if(min != parent_node)
+	{
         temp = h->arr[min];
         h->arr[min] = h->arr[parent_node];
         h->arr[parent_node] = temp;
@@ -413,9 +436,11 @@ void heapify_top_bottom(Heap *h, int parent_node){
     }
 }
 
-struct processes PopMin(Heap *h){
+struct processes PopMin(Heap *h)
+{
     struct processes pop;
-    if(h->count==0){
+    if(h->count==0)
+	{
         printf("\n__Heap is Empty__\n");
         return pop;
     }
