@@ -119,19 +119,29 @@ int main()
 	pid_t child_pid, wpid;
 	int status = 0;
 	for (int i = 0; i < 5; i++) 
-	{
-		if (fork() == 0) 
+	{ 
+		int result = fork();
+		// the linux machine will sometimes decide not to give us enough forks, the philosophers are starving, just run again
+		if (result == 0) 
 		{
 		   	//call scheduling child function here
 		   	procPID[i] = getpid();
 		   	*totalTime += scheduler(sem_id, numProcesses, prosArr, procPID);
 		   	exit(0);
+		} 
+		else if (result < 0)
+		{
+			printf("Child  : [fork] Failed\n");
+			exit(EXIT_FAILURE);
 		}
 		// control reaches this point only in the parent
 	}
 	
+	// see pids
+	/*
 	for(int i = 0; i < 5; i++)
 		printf("%d: %d\n", i, procPID[i]);
+	*/
 	
 	//release control of semaphore
 	if (sem_post(sem_id) < 0)
