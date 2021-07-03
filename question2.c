@@ -97,7 +97,7 @@ int main()
 	fclose(fp);
 	
 	// sort arr of structs
-	//sortProcesses(prosArr);
+	sortProcesses(prosArr);
 	
 	//test print
 	//printPros(prosArr);
@@ -131,6 +131,9 @@ int main()
 		// control reaches this point only in the parent
 	}
 	
+	for(int i = 0; i < 5; i++)
+		printf("%d: %d\n", i, procPID[i]);
+	
 	//release control of semaphore
 	if (sem_post(sem_id) < 0)
 	{
@@ -161,11 +164,11 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[], i
 	double timeToRun = 0;       
 	double execTime = 0;
 	double wait = 0;
-printf("bug1\n");
+	
+	sleep(1);
 
 	while (*numProcesses > 0)
 	{
-printf("bug2\n");
 		// if semaphore available, then continue
 		if (sem_wait(sem_id) < 0)
 		{
@@ -182,11 +185,9 @@ printf("bug2\n");
 			}
 			return timeToRun + wait;
 		}	
-printf("bug3\n");
 
 		if(prosArr[0].memory >= GB4 && procPID[4] == getpid())
 		{
-printf("bug4\n");
 
 			// get next item in posArr
 			printf("name: %s  \ttime: %llu   \tmem: %d   \tpid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
@@ -199,21 +200,11 @@ printf("bug4\n");
 		
 			//move start of prosArr
 			memmove(&prosArr[0], &prosArr[1], (NUM_OF_PROCESSES - 1) * sizeof(struct processes));
-	
-			//release control of semaphore
-			if (sem_post(sem_id) < 0)
-			{
-				printf("%d   : [sem_post] Failed \n", getpid());
-			}
 
-			//sleep for last timeToRun /1000
-			usleep(execTime * 100);
-			continue;
-		}
-	
-		if((prosArr[0].memory >= GB2 && prosArr[0].memory < GB4) && (procPID[0] != getpid() && procPID[1] != getpid()))
+			
+		} 
+		else if((prosArr[0].memory >= GB2 && prosArr[0].memory < GB4) && (procPID[0] != getpid() && procPID[1] != getpid()))
 		{
-printf("bug5\n");
 
 			// get next item in posArr
 			printf("name: %s  \ttime: %llu   \tmem: %d   \tpid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
@@ -226,21 +217,9 @@ printf("bug5\n");
 		
 			//move start of prosArr
 			memmove(&prosArr[0], &prosArr[1], (NUM_OF_PROCESSES - 1) * sizeof(struct processes));
-	
-			//release control of semaphore
-			if (sem_post(sem_id) < 0)
-			{
-				printf("%d   : [sem_post] Failed \n", getpid());
-			}
-
-			//sleep for last timeToRun /1000
-			usleep(execTime * 100);
-			continue;
-		}
-
-		if(prosArr[0].memory < GB2)
+		} 
+		else if(prosArr[0].memory < GB2)
 		{
-printf("bug6\n");
 
 			// get next item in posArr
 			printf("name: %s  \ttime: %llu   \tmem: %d   \tpid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
@@ -253,19 +232,16 @@ printf("bug6\n");
 		
 			//move start of prosArr
 			memmove(&prosArr[0], &prosArr[1], (NUM_OF_PROCESSES - 1) * sizeof(struct processes));
-	
-			//release control of semaphore
-			if (sem_post(sem_id) < 0)
-			{
-				printf("%d   : [sem_post] Failed \n", getpid());
-			}
-
-			//sleep for last timeToRun /1000
-			usleep(execTime * 100);
-			continue;
 		}
 
-
+		//release control of semaphore
+		if (sem_post(sem_id) < 0)
+		{
+			printf("%d   : [sem_post] Failed \n", getpid());
+		}
+		
+		//sleep for last timeToRun /1000
+		usleep(execTime * 100);
 
 	}	
 	return timeToRun + wait;
