@@ -11,7 +11,7 @@
 #include <sys/shm.h>         // shmdt
 
 //how to run
-// gcc -pthread main.c
+// gcc -pthread question1.c
 
 // total number of processes to generate and schedule 
 #define NUM_OF_PROCESSES 200
@@ -122,6 +122,9 @@ int main()
 		// control reaches this point only in the parent
 	}
 	
+	// give children time to all reach semWait
+	sleep(1);
+	
 	//release control of semaphore
 	if (sem_post(sem_id) < 0)
 		printf("%d   : [sem_post] Failed \n", getpid());
@@ -164,7 +167,7 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[]){
 		}
 		
 		// get next item in posArr
-		printf("%s  time: %llu   mem: %d   pid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
+		printf("name: %s  \ttime: %llu   \tmem: %d   \tpid: %d\n", prosArr[0].name, prosArr[0].cycleTime, prosArr[0].memory, getpid());
 		*numProcesses = *numProcesses - 1;
 		
 		// calulate timeToRun
