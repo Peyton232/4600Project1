@@ -1,41 +1,43 @@
-#include <stdio.h>			 // FILE, NULL, fflush, fopen, fclose, printf, etc
-#include <stdlib.h> 		 // rand(), srand()
-#include <time.h>    		 // time()
-#include <sys/types.h>		 // pid_t, size_t
-#include <sys/wait.h>		 // wait
-#include <unistd.h>			 // getpid, fork, sleep
-#include <semaphore.h>		 // sem_t, SEM_FAILED
-#include <fcntl.h>			 // O_CREAT, O_RDONLY, O_WRONLY
-#include <sys/mman.h>        // mman
-#include<string.h>           // memove
-#include <sys/shm.h>         // shmdt
+#include <stdio.h>			 //FILE, NULL, fflush, fopen, fclose, printf, etc
+#include <stdlib.h> 		 //rand(), srand()
+#include <time.h>    		 //time()
+#include <sys/types.h>		 //pid_t, size_t
+#include <sys/wait.h>		 //wait
+#include <unistd.h>			 //getpid, fork, sleep
+#include <semaphore.h>		 //sem_t, SEM_FAILED
+#include <fcntl.h>			 //O_CREAT, O_RDONLY, O_WRONLY
+#include <sys/mman.h>        //mman
+#include <string.h>          //memove
+#include <sys/shm.h>         //shmdt
 
 //how to run
-// gcc -pthread question1.c
+//gcc -pthread question1.c
 
-// total number of processes to generate and schedule 
+//total number of processes to generate and schedule 
 #define NUM_OF_PROCESSES 200
 
-// upper and lower limits for how many cycles a process can take
-// add one to upper limit to make the rand inclusive
+//upper and lower limits for how many cycles a process can take
+//add one to upper limit to make the rand inclusive
 #define UPPER_CYCLE 50000000000001
 #define LOWER_CYCLE 10000000
 
-// upper and lower limits for ammount of memory a process can take
-// expressed in MB * 100 to avoid fractional numbers
+//upper and lower limits for ammount of memory a process can take
+//expressed in MB * 100 to avoid fractional numbers
 #define UPPER_MEMORY 800000
 #define LOWER_MEMORY 25
 
 //clock speed 
 #define GHZ 8000000000
 
-// will be used to lock down file I/O between processes to keep it atomic
+//will be used to lock down file I/O between processes to keep it atomic
 const char *semName = "/semLock";
-// rogue semaphores are here - /dev/shm
-// if weird error with semaphore check if it is still left open here
+
+//rogue semaphores are here - /dev/shm
+//if weird error with semaphore check if it is still left open here
 
 //structs
-struct processes{
+struct processes
+{
 	char name[5];
 	unsigned long long int cycleTime;
 	int memory;
@@ -57,16 +59,16 @@ int main()
 	int tempMem;
 	
 	//SHARED MEMORY
-	// time each processor spent running
+	//time each processor spent running
 	double *totalTime = mmap(NULL, sizeof *totalTime, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	*totalTime = 0;
 	int *numProcesses = mmap(NULL, sizeof *numProcesses, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	*numProcesses = NUM_OF_PROCESSES;
 	
-	// array of processes, we will remove elements from the array as each process takes on a process
+	//array of processes, we will remove elements from the array as each process takes on a process
 	struct processes* prosArr = mmap(NULL, NUM_OF_PROCESSES * sizeof(prosArr), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	
-	// Intializes random number generator
+	//Intializes random number generator
 	time_t t;
 	srand((unsigned) time(&t));
 	
@@ -76,12 +78,11 @@ int main()
 	//generate random processes to write to file and store in array
 	for (int i = 0; i < NUM_OF_PROCESSES; i++)
 	{
-		// get random time and memory for this process
+		//get random time and memory for this process
 		tempCycle = rand() % (UPPER_CYCLE - LOWER_CYCLE) + LOWER_CYCLE;
 		tempMem = rand() % (UPPER_MEMORY - LOWER_MEMORY) + LOWER_MEMORY;
 		fprintf(fp, "p%d\t burst time: %llu\t\t memory requirement: %d\n", i, tempCycle, tempMem);
 		
-		// sort this later
 		prosArr[i].cycleTime = tempCycle;
 		prosArr[i].memory = tempMem;
 		snprintf(prosArr[i].name, 12, "p%d", i);
@@ -90,8 +91,8 @@ int main()
 	//close file
 	fclose(fp);
 	
-	// sort arr of structs
-	//sortProcesses(prosArr);
+	//sort arr of structs
+	sortProcesses(prosArr);
 	
 	//test print
 	//printPros(prosArr);
@@ -112,9 +113,10 @@ int main()
 	//create 5 children to go and begin execution
 	pid_t child_pid, wpid;
 	int status = 0;
-	fflush(0); // not directly relevant but always a good idea before forking
-	for (int i = 0; i < 5; i++) {
-		if (fork() == 0) {
+	for (int i = 0; i < 5; i++) 
+	{
+		if (fork() == 0) 
+		{
 		   //call scheduling child function here
 		   *totalTime += scheduler(sem_id, numProcesses, prosArr);
 		   exit(0);
@@ -150,17 +152,20 @@ int main()
  * read the processes in randomProcesses.txt and then schdule which processor
  * will run which process
  */
-double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[]){
+double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[])
+{
 	double timeToRun = 0;       //keep track of wait time + execution time of everything that ran on this processor
 	double execTime = 0, wait = 0;
 	
-	while (*numProcesses > 0){
+	while (*numProcesses > 0)
+	{
 		// if semaphore available, then continue
 		if (sem_wait(sem_id) < 0)
 			printf("%d  : [sem_wait] Failed\n", getpid());
 		// THIS IS CRITICAL SECTION
 		
-		if (*numProcesses <= 0){
+		if (*numProcesses <= 0)
+		{
 			if (sem_post(sem_id) < 0)
 				printf("%d   : [sem_post] Failed \n", getpid());
 			return timeToRun + wait;
@@ -194,7 +199,8 @@ double scheduler(sem_t *sem_id, int *numProcesses, struct processes prosArr[]){
  * take in the arr of processes 
  * and sort based on time needed to run
  */
-void sortProcesses(struct processes prosArr[]){
+void sortProcesses(struct processes prosArr[])
+{
 	int i, j;
 	int n = NUM_OF_PROCESSES;
 	struct processes key;
@@ -218,8 +224,10 @@ void sortProcesses(struct processes prosArr[]){
 /*
  * test print for the array of processes
  */
-void printPros(struct processes prosArr[]){
+void printPros(struct processes prosArr[])
+{
 	int n = NUM_OF_PROCESSES;
+
 	for (int i = 1; i < n; i++)
     { 
 		printf("%s  time: %llu   mem: %d\n", prosArr[i].name, prosArr[i].cycleTime, prosArr[i].memory);
@@ -252,4 +260,3 @@ void convertSectoDay(unsigned long long int n)
 	printf("minutes: %d\n", minutes);
 	printf("seconds: %d\n", seconds);
 }
-
