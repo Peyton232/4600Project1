@@ -120,16 +120,16 @@ int main()
 	int status = 0;
 	for (int i = 0; i < 5; i++) 
 	{ 
-		int result = fork();
+		child_pid = fork();
 		// the linux machine will sometimes decide not to give us enough forks, the philosophers are starving, just run again
-		if (result == 0) 
+		if (child_pid == 0) 
 		{
 		   	//call scheduling child function here
 		   	procPID[i] = getpid();
 		   	*totalTime += scheduler(sem_id, numProcesses, prosArr, procPID);
 		   	exit(0);
 		} 
-		else if (result < 0)
+		else if (child_pid < 0)
 		{
 			printf("Child  : [fork] Failed\n");
 			exit(EXIT_FAILURE);
