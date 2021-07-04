@@ -116,25 +116,51 @@ int main()
 	//create 5 children to go and begin execution
 	pid_t child_pid, wpid;
 	int status = 0;
-	if (fork() == 0){
+
+	child_pid = fork();
+	if (child_pid == 0){
 		*totalTime += schedulerBigFirst(sem_id, numProcesses, prosArr, GHZ2);
 		exit(0);
 	}
-	if (fork() == 0){
+	else if (child_pid < 0){
+		printf("Child  : [fork] Failed\n");
+		exit(EXIT_FAILURE);
+	}
+	child_pid = fork();
+	if (child_pid == 0){
 		*totalTime += schedulerBigFirst(sem_id, numProcesses, prosArr, GHZ2);
 		exit(0);
 	}
-	if (fork() == 0){
+	else if (child_pid < 0){
+		printf("Child  : [fork] Failed\n");
+		exit(EXIT_FAILURE);
+	}
+	child_pid = fork();
+	if (child_pid == 0){
 		*totalTime += schedulerBigFirst(sem_id, numProcesses, prosArr, GHZ3);
 		exit(0);
 	}
-	if (fork() == 0){
+	else if (child_pid < 0){
+		printf("Child  : [fork] Failed\n");
+		exit(EXIT_FAILURE);
+	}
+	child_pid = fork();
+	if (child_pid == 0){
 		*totalTime += schedulerSmallFirst(sem_id, numProcesses, prosArr, GHZ3);
 		exit(0);
 	}
-	if (fork() == 0){
+	else if (child_pid < 0){
+		printf("Child  : [fork] Failed\n");
+		exit(EXIT_FAILURE);
+	}
+	child_pid = fork();
+	if (child_pid == 0){
 		*totalTime += schedulerSmallFirst(sem_id, numProcesses, prosArr, GHZ4);
 		exit(0);
+	}
+	else if (child_pid < 0){
+		printf("Child  : [fork] Failed\n");
+		exit(EXIT_FAILURE);
 	}
 	
 	// give children time to all reach semWait
