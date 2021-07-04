@@ -150,20 +150,26 @@ int main()
 	
 	for (int i = 0; i < 5; i++) 
 	{
-		// add error checking to fork
-		if (fork() == 0) 
+		child_pid = fork();
+		// the linux machine will sometimes decide not to give us enough forks, the philosophers are starving, just run again
+		if (child_pid == 0) 
 		{
 		   //call scheduling child function here
 		   *totalTime += scheduler(sem_id, numProcesses, h);
 		   exit(0);
 		}
-		// control reaches this point only in the parent
+		else if (child_pid < 0)
+		{
+			printf("Child  : [fork] Failed\n");
+			exit(EXIT_FAILURE);
+		}
+		//control reaches this point only in the parent
 	}
 	
-	// schedule takss in heap
+	//schedule tasks in heap
 	taskGiver(prosArr, h, sem_id);
 	
-	// the parent waits for all the child processes to finish
+	//the parent waits for all the child processes to finish
 	while ((wpid = wait(&status)) > 0); 
 	
 	//get total time it took to run
@@ -394,7 +400,7 @@ int isEmpty(Heap *h)
 }
 
 /*
- * readjust heap to meet min heap requirements
+ * read just heap to meet min heap requirements
  * meant for after you insert a new item
  */
 void heapify_bottom_top(Heap *h,int index)
