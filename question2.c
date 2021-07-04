@@ -31,7 +31,7 @@
 #define LOWER_MEMORY 25
 
 //clock speed 
-#define GHZ 1000000000
+#define GHZ 3000000000
 
 //will be used to lock down file I/O between processes to keep it atomic
 const char *semName = "/semLock";
