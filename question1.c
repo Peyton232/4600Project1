@@ -115,7 +115,13 @@ int main()
 	int status = 0;
 	for (int i = 0; i < 5; i++) 
 	{
-		if (fork() == 0) 
+		child_pid = fork();
+		if(child_pid < 0)
+		{
+			printf("Child  : [fork] Failed\n");
+			exit(EXIT_FAILURE);
+		}
+		else if (child_pid == 0) 
 		{
 		   //call scheduling child function here
 		   *totalTime += scheduler(sem_id, numProcesses, prosArr);
